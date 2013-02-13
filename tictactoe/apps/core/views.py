@@ -1,3 +1,5 @@
+import logging
+
 from django.shortcuts import get_object_or_404, render_to_response, redirect
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, Http404
@@ -19,14 +21,26 @@ from django.conf import settings
 from gevent.greenlet import Greenlet
 
 from socketio.namespace import BaseNamespace
+from socketio.mixins import RoomsMixin, BroadcastMixin
 from socketio.sdjango import namespace
 
-REDIS_HOST = getattr(settings, 'REDIS_HOST', 'localhost')
+
+REDIS_HOST = getattr(settings, 'REDIS_HOST')
+REDIS_PASSWORD = getattr(settings, 'REDIS_PASSWORD')
+REDIS_PORT = getattr(settings, 'REDIS_PORT') # make sure this is an int
+
+def get_redis():
+    """
+    Helper function to instance Redis correctly
+    """
+    return redis.StrictRedis(host=REDIS_HOST, 
+                            port=REDIS_PORT, 
+                            password=REDIS_PASSWORD)
 
 @namespace('/game')
 class GameNamespace(BaseNamespace):
     def listener(self, chan):
-            red = redis.StrictRedis(REDIS_HOST)
+            red = get_redis()
             red = red.pubsub()
             red.subscribe(chan)
 
@@ -41,6 +55,13 @@ class GameNamespace(BaseNamespace):
 
         if action == 'subscribe':
             Greenlet.spawn(self.listener, pk)
+#
+#def socketio(request):
+#    socketio_manage(request.environ, 
+#                    { '': GameNamespace}, 
+#                    request=request
+#                    )
+#    return HttpResponse()
 
 
 @login_required
@@ -48,7 +69,7 @@ def create_move(request, game_id):
     game = _get_game(request.user, game_id)
     if request.POST:
         move = int(request.POST['move'])
-        red = redis.StrictRedis(REDIS_HOST)
+        red = get_redis()
 
         # get player of move
         tic_player = Player_X if game.player1 == request.user else Player_O
@@ -171,7 +192,7 @@ def accept_invite(request, key):
 
         game.save()
 
-        red = redis.StrictRedis(REDIS_HOST)
+        red = get_redis()
         red.publish('%d' % invite.inviter.id, ['game_started', game.id, str(request.user.username)])
 
         # No reason to keep the invites around
@@ -213,7 +234,7 @@ def game_list(request, template_name='core/game_list.html'):
                 messages.add_message(request, messages.SUCCESS, 'Invite was sent!')
 
                 if invite.invitee:
-                    red = redis.StrictRedis(REDIS_HOST)
+                    red = get_redis()
                     red.publish('%d' % invite.invitee.id, ['new_invite', str(request.user.username), url])
 
                 send_mail('You are invited to play tic tac toe :)', 'Click here! %s%s' % (current_site.domain, url), 'sontek@gmail.com',

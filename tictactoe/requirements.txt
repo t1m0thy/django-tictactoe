@@ -1,0 +1,17 @@
+Django==1.4.3
+gevent
+greenlet
+mock
+redis
+django_nose
+git+git://github.com/abourget/gevent-socketio.git
+gevent-websocket  #gevent-socketio dependency
+gunicorn==0.16.1# required pure python web server for gevent monkey patch to work
+psycopg2
+psycogreen
+gevent-psycopg2
+mysql-python
+pymysql
+git+git://github.com/CMGS/PyMySQL.git
+django-registration
+simplejson

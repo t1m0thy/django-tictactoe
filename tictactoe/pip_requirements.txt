@@ -1,7 +1,0 @@
-django
-django-registration
-gevent
-redis
-simplejson
--e git+git://github.com/abourget/gevent-socketio.git
--e git+git://github.com/abourget/gevent-websocket.git
